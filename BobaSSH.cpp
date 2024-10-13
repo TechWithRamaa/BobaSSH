@@ -1,8 +1,7 @@
 #include <iostream>
 #include <cstring>
-#include <unistd.h>
 #include <arpa/inet.h>
-#include <limits>
+#include <unistd.h>
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
@@ -31,56 +30,35 @@ int main() {
 
      std::cout << "Connected to server...";
 
-    char buffer[BUFFER_SIZE];
+    char buffer[1024];
+    std::string command;
 
-    // Authentication
-    std::string username, password;
-
-    std::cout << "Enter username: ";
-    std::getline(std::cin, username);
-    send(sockfd, username.c_str(), username.length(), 0);
-
-    std::cout << "Enter password: ";
-    std::getline(std::cin, password);
-    send(sockfd, password.c_str(), password.length(), 0);
-
-    memset(buffer, 0, BUFFER_SIZE);  // Clear the buffer
-    recv(sockfd, buffer, BUFFER_SIZE, 0);  // Receive authentication result
-    std::cout << buffer << std::endl;  // Print result
-
-    // Command loop
+    // Loop to send and receive commands
     while (true) {
-        std::cout << "Enter command (or 'exit' to quit): ";
+        std::cout << "Type your command (type 'q' to quit): ";
+        std::getline(std::cin, command);
 
-        // Using a temporary string to handle command input
-        std::string command;
-        std::getline(std::cin, command);  // Capture command input
-
-        std::cout << "user entered " << command << std::endl;
-
-        // Check for exit command
-        if (command == "exit") {
-            // Inform server before closing the socket
-             std::cout << "Disconnecting from server" << command << std::endl;
-            send(sockfd, "DISCONNECT", strlen("DISCONNECT"), 0); // Sending disconnect command
-            break; // Exit the loop
-        }
-         std::cout << "sending to server " << command << std::endl;
-        // Send command to the server
+        // Send command to server
         send(sockfd, command.c_str(), command.length(), 0);
 
-        // Receive server output for the command
-        memset(buffer, 0, BUFFER_SIZE);  // Clear the buffer before receiving
-        ssize_t bytes_received = recv(sockfd, buffer, BUFFER_SIZE - 1, 0);
+        // Check if the client wants to quit
+        if (command == "q") {
+            break;
+        }
+
+        // Receive response from server
+        memset(buffer, 0, sizeof(buffer));
+        ssize_t bytes_received = recv(sockfd, buffer, sizeof(buffer) - 1, 0);
         if (bytes_received > 0) {
-            buffer[bytes_received] = '\0';  // Null-terminate the buffer
-            std::cout << "Output:\n" << buffer << std::endl;
+            std::cout << "Received from server: " << buffer << std::endl;
         } else {
-            std::cerr << "Error receiving data from server.\n";
+            std::cerr << "Error receiving data from server." << std::endl;
             break;
         }
     }
 
+    // Close the socket
     close(sockfd);
+    std::cout << "Connection closed." << std::endl;
     return 0;
 }
